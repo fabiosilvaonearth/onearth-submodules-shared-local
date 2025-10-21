@@ -1,11 +1,9 @@
-# .github/workflows/trigger-external-repo.yml
 name: Trigger External Repository
 
 on:
   pull_request:
     branches: [develop, preview, main]
     types: [closed]
-
 jobs:
   trigger-external:
     if: ${{ github.event.pull_request.merged == true }}
@@ -29,7 +27,7 @@ jobs:
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.EXTERNAL_REPO_TOKEN }}
-          repository: onearthlabs/${{ vars.EXTERNAL_REPO_NAME }}
+          repository: fabiosilvaonearth/${{ vars.EXTERNAL_REPO_NAME }}
           event-type: pr-merged
           client-payload: '{
             "source_branch": "${{ github.event.pull_request.head.ref }}",
