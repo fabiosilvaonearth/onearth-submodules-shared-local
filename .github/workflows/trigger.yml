@@ -4,25 +4,32 @@ on:
   pull_request:
     branches: [develop, preview, main]
     types: [closed]
-jobs:
 
+jobs:
   determine-environment:
     if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
     steps:
       - name: Determine environment
         id: env
         run: |
           if [ "${{ github.event.pull_request.base.ref }}" == "main" ]; then
-            ENVIRONMENT="prod"
+            echo "environment=prod" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.pull_request.base.ref }}" == "preview" ]; then
-            ENVIRONMENT="preview"
+            echo "environment=preview" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.pull_request.base.ref }}" == "develop" ]; then
-            ENVIRONMENT="develop"
+            echo "environment=develop" >> $GITHUB_OUTPUT
           else
-            ENVIRONMENT="develop"
+            echo "environment=develop" >> $GITHUB_OUTPUT
           fi
-          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+          
+      - name: Debug environment
+        run: |
+          echo "Determined environment: ${{ steps.env.outputs.environment }}"
+          echo "Base ref: ${{ github.event.pull_request.base.ref }}"
+          echo "Merged: ${{ github.event.pull_request.merged }}"
           
   trigger-external:
     if: ${{ github.event.pull_request.merged == true }}
@@ -31,12 +38,14 @@ jobs:
     environment: 
       name: ${{ needs.determine-environment.outputs.environment }}
     steps:
+      - name: Debug environment from previous job
+        run: |
+          echo "Environment from determine-environment job: ${{ needs.determine-environment.outputs.environment }}"
+          
       - name: Trigger external repository
         uses: peter-evans/repository-dispatch@v2
-        env:
-          TOKEN: ${{ secrets.EXTERNAL_REPO_TOKEN || github.token }}
         with:
-          token: ${{ env.TOKEN }}
+          token: ${{ secrets.EXTERNAL_REPO_TOKEN || github.token }}
           repository: fabiosilvaonearth/${{ vars.EXTERNAL_REPO_NAME }}
           event-type: pr-merged
           client-payload: '{
