@@ -1,0 +1,42 @@
+# .github/workflows/trigger-external-repo.yml
+name: Trigger External Repository
+
+on:
+  pull_request:
+    branches: [develop, preview, main]
+    types: [closed]
+
+jobs:
+  trigger-external:
+    if: ${{ github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event.pull_request.base.ref }}" == "main" ]; then
+            ENVIRONMENT="prod"
+          elif [ "${{ github.event.pull_request.base.ref }}" == "preview" ]; then
+            ENVIRONMENT="preview"
+          elif [ "${{ github.event.pull_request.base.ref }}" == "develop" ]; then
+            ENVIRONMENT="develop"
+          else
+            ENVIRONMENT="develop"
+          fi
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+
+      - name: Trigger external repository
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.EXTERNAL_REPO_TOKEN }}
+          repository: onearthlabs/${{ vars.EXTERNAL_REPO_NAME }}
+          event-type: pr-merged
+          client-payload: '{
+            "source_branch": "${{ github.event.pull_request.head.ref }}",
+            "target_branch": "${{ github.event.pull_request.base.ref }}",
+            "environment": "${{ steps.env.outputs.environment }}",
+            "source_repo": "${{ github.repository }}",
+            "commit_sha": "${{ github.event.pull_request.merge_commit_sha }}",
+            "pr_number": "${{ github.event.pull_request.number }}",
+            "pr_title": "${{ github.event.pull_request.title }}"
+            }'

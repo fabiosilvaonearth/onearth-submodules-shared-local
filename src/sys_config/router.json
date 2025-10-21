@@ -1,0 +1,5 @@
+{
+  "title": "SysConfig Routes",
+  "group": "SysConfig",
+  "description": "This layer contains the routes related to SysConfigs."
+}
