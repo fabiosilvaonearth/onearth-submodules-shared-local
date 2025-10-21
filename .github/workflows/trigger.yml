@@ -33,14 +33,16 @@ jobs:
     steps:
       - name: Trigger external repository
         uses: peter-evans/repository-dispatch@v2
+        env:
+          TOKEN: ${{ secrets.EXTERNAL_REPO_TOKEN || github.token }}
         with:
-          token: ${{ secrets.EXTERNAL_REPO_TOKEN }}
+          token: ${{ env.TOKEN }}
           repository: fabiosilvaonearth/${{ vars.EXTERNAL_REPO_NAME }}
           event-type: pr-merged
           client-payload: '{
             "source_branch": "${{ github.event.pull_request.head.ref }}",
             "target_branch": "${{ github.event.pull_request.base.ref }}",
-            "environment": "${{ steps.env.outputs.environment }}",
+            "environment": "${{ needs.determine-environment.outputs.environment }}",
             "source_repo": "${{ github.repository }}",
             "commit_sha": "${{ github.event.pull_request.merge_commit_sha }}",
             "pr_number": "${{ github.event.pull_request.number }}",
